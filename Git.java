@@ -96,9 +96,18 @@ public class Git {
         // creates hash file name
         String shaFileName = sha1Generator(blobFileInput);
         // saves original file name
-        String originalFileName = blobFileInput.getName();
+        //String originalFileName = blobFileInput.getName();
         // creates line to be writen to index file
-        String indexOutput = (shaFileName + " " + originalFileName);
+        String type = "";
+        if (blobFileInput.isFile()) {
+            type += "blob ";
+        }
+        else {
+            type += "tree ";
+        }
+        String path = blobFileInput.getPath();
+        String indexOutput = (type + shaFileName + " " + path);
+
         // points and creates new file with hash as name
         File hashFile = new File("git/objects/" + shaFileName);
         hashFile.createNewFile();
@@ -129,6 +138,45 @@ public class Git {
             e.printStackTrace();
         }
 
+    }
+
+    public static String addTree(String path) throws IOException{
+        //creates file object
+        File blob = new File(path);
+        //checks if path works
+        if (!blob.exists()) {
+            throw new IOException("this path ain't work");
+        }
+        //checks to see if it is a file or folder
+        if (blob.isDirectory()) {
+            //goes through everything in the folder
+            File[] blobs = blob.listFiles();
+            for (int i = 0; i < blobs.length; i++) {
+                File file = blobs[i];
+                if (file.isFile()) {
+                    //writes the new line
+                    String hash = sha1Generator(file);
+                    String newLine = "blob " + hash + file.getName();
+
+                    //saves stuff to objects
+                    String newPath = "git/objects" + hash;
+                    File newFile = new File (newPath);
+                    copyContent(file, newFile);
+
+                    //adds new line to the tree file
+                    BufferedWriter bw = new BufferedWriter(new FileWriter(blob));
+                    bw.newLine();
+                    bw.write(newLine);
+                    bw.close();
+                }
+                else {
+                    String newPath2 = "git/objects" + addTree(file.getPath());
+                    File newFile2 = new File (newPath2);
+                    copyContent(file, newFile2);
+                }
+            }
+        }
+        return sha1Generator(blob);
     }
 
     // reader and writer to copy files from

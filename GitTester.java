@@ -61,5 +61,7 @@ public class GitTester {
         while (readHashFile.ready()) {
             System.out.println(readHashFile.readLine());
         }
+        readHashFile.close();
+        readTestFile.close();
     }
 }
