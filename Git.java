@@ -153,12 +153,14 @@ public class Git {
             File[] blobs = blob.listFiles();
             for (int i = 0; i < blobs.length; i++) {
                 File file = blobs[i];
+                String type = "";
+                String hash = "";
                 if (file.isFile()) {
                     //writes the new line
-                    String hash = sha1Generator(file);
+                    hash = sha1Generator(file);
                     String newLine = "blob " + hash + file.getName();
 
-                    //saves stuff to objects
+                    //saves file stuff to objects
                     String newPath = "git/objects" + hash;
                     File newFile = new File (newPath);
                     copyContent(file, newFile);
@@ -168,12 +170,27 @@ public class Git {
                     bw.newLine();
                     bw.write(newLine);
                     bw.close();
+
+                    //sets the type as a blob
+                    type = "blob ";
                 }
                 else {
-                    String newPath2 = "git/objects" + addTree(file.getPath());
+                    //saves directory stuff to objects
+                    hash = addTree(file.getPath());
+                    String newPath2 = "git/objects" + hash;
                     File newFile2 = new File (newPath2);
                     copyContent(file, newFile2);
+
+                    //sets type as a tree
+                    type = "tree ";
                 }
+                //saves stuff to index
+                File index = new File ("git/index");
+                BufferedWriter bw2 =  new BufferedWriter(new FileWriter(index));
+                bw2.newLine();
+                String newLine2 = type + hash + file.getPath();
+                bw2.write(newLine2);
+                bw2.close();
             }
         }
         return sha1Generator(blob);
