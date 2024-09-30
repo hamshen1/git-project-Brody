@@ -129,7 +129,7 @@ public class Git {
         // writes to index if entry is not present
         try {
             if (!existsInIndex) {
-                BufferedWriter writeIndex = new BufferedWriter(new FileWriter(i));
+                BufferedWriter writeIndex = new BufferedWriter(new FileWriter(i, true));
                 writeIndex.write(indexOutput);
                 writeIndex.newLine();
                 writeIndex.close();
@@ -140,60 +140,54 @@ public class Git {
 
     }
 
-    public static String addTree(String path) throws IOException{
+    public static String addTree(String path, String name) throws IOException{
         //creates file object
         File blob = new File(path);
         //checks if path works
         if (!blob.exists()) {
-            throw new IOException("this path ain't work");
+            throw new IOException("this path ain't work. litowaly");
         }
+        File tree = new File ("git/objects/" + name);
         //checks to see if it is a file or folder
         if (blob.isDirectory()) {
+            // //creates the new tree file
+            String toTreeFile = "";
             //goes through everything in the folder
             File[] blobs = blob.listFiles();
+
             for (int i = 0; i < blobs.length; i++) {
                 File file = blobs[i];
-                String type = "";
                 String hash = "";
-                if (file.isFile()) {
-                    //writes the new line
-                    hash = sha1Generator(file);
-                    String newLine = "blob " + hash + file.getName();
-
-                    //saves file stuff to objects
-                    String newPath = "git/objects" + hash;
-                    File newFile = new File (newPath);
-                    copyContent(file, newFile);
-
-                    //adds new line to the tree file
-                    BufferedWriter bw = new BufferedWriter(new FileWriter(blob));
-                    bw.newLine();
-                    bw.write(newLine);
-                    bw.close();
-
-                    //sets the type as a blob
-                    type = "blob ";
+                if (file.isDirectory()) {
+                    //adds new line for the tree file
+                    hash = addTree(file.getPath(), file.getName());
+                    toTreeFile += "tree " + hash + " " + file.getName() + "\n";
                 }
                 else {
-                    //saves directory stuff to objects
-                    hash = addTree(file.getPath());
-                    String newPath2 = "git/objects" + hash;
-                    File newFile2 = new File (newPath2);
-                    copyContent(file, newFile2);
+                    //gets the new line
+                    hash = sha1Generator(file);
+                    String newLine = "blob " + hash + " " + file.getName();
 
-                    //sets type as a tree
-                    type = "tree ";
+                    //adds new line to the tree file
+                    toTreeFile += newLine + "\n";
+
+                    //saves file stuff to objects & index
+                    blobGenerator(file);
                 }
-                //saves stuff to index
-                File index = new File ("git/index");
-                BufferedWriter bw2 =  new BufferedWriter(new FileWriter(index));
-                bw2.newLine();
-                String newLine2 = type + hash + file.getPath();
-                bw2.write(newLine2);
-                bw2.close();
             }
+            //adds stuff to tree file
+            BufferedWriter bw = new BufferedWriter(new FileWriter(tree));
+            bw.write(toTreeFile);
+            bw.close();
+
+            //adds directory stuff to index
+            File index = new File ("git/index");
+            String toIndex = "tree " + sha1Generator(tree) + " " + path + "\n";
+            BufferedWriter bw2 = new BufferedWriter(new FileWriter(index, true));
+            bw2.write(toIndex);
+            bw2.close();
         }
-        return sha1Generator(blob);
+        return sha1Generator(tree);
     }
 
     // reader and writer to copy files from
